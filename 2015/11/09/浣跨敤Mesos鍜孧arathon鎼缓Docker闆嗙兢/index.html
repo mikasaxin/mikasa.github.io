@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <meta charset="utf-8">
+    
+    <title>使用Mesos和Marathon搭建Docker集群 | Hexo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="利用Mesos，Marathon对Docker集群进行管理，保证高容错性，高拓展性。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用Mesos和Marathon搭建Docker集群">
+<meta property="og:url" content="http://mikasa.github.io/2015/11/09/浣跨敤Mesos鍜孧arathon鎼缓Docker闆嗙兢/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="利用Mesos，Marathon对Docker集群进行管理，保证高容错性，高拓展性。">
+<meta property="og:image" content="http://mikasa.github.io/uploads/images/2015/11/09/1.png">
+<meta property="og:image" content="http://mikasa.github.io/uploads/images/2015/11/09/2.png">
+<meta property="og:image" content="http://mikasa.github.io/uploads/images/2015/11/09/3.png">
+<meta property="og:image" content="http://mikasa.github.io/uploads/images/2015/11/09/4.png">
+<meta property="og:image" content="http://mikasa.github.io/uploads/images/2015/11/09/5.png">
+<meta property="og:image" content="http://mikasa.github.io/uploads/images/2015/11/09/6.png">
+<meta property="og:updated_time" content="2016-11-24T07:16:14.352Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="使用Mesos和Marathon搭建Docker集群">
+<meta name="twitter:description" content="利用Mesos，Marathon对Docker集群进行管理，保证高容错性，高拓展性。">
+<meta name="twitter:image" content="http://mikasa.github.io/uploads/images/2015/11/09/1.png">
+    
+
+    
+        <link rel="alternate" href="/" title="Hexo" type="application/atom+xml" />
+    
+
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/open-sans/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/2.1.3/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+        <link rel="stylesheet" href="/libs/justified-gallery/justifiedGallery.min.css">
+    
+    
+    
+    
+
+
+</head>
+
+<body>
+    <div id="container">
+        <header id="header">
+    <div id="header-main" class="header-inner">
+        <div class="outer">
+            <a href="/" id="logo">
+                <i class="logo"></i>
+                <span class="site-title">Hexo</span>
+            </a>
+            <nav id="main-nav">
+                
+                    <a class="main-nav-link" href="/.">Home</a>
+                
+                    <a class="main-nav-link" href="/archives">Archives</a>
+                
+                    <a class="main-nav-link" href="/categories">Categories</a>
+                
+                    <a class="main-nav-link" href="/tags">Tags</a>
+                
+                    <a class="main-nav-link" href="/about">About</a>
+                
+            </nav>
+            
+                
+                <nav id="sub-nav">
+                    <div class="profile" id="profile-nav">
+                        <a id="profile-anchor" href="javascript:;">
+                            <img class="avatar" src="/css/images/avatar.png" />
+                            <i class="fa fa-caret-down"></i>
+                        </a>
+                    </div>
+                </nav>
+            
+            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search" />
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something..." />
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+        </div>
+    </div>
+    <div id="main-nav-mobile" class="header-sub header-inner">
+        <table class="menu outer">
+            <tr>
+                
+                    <td><a class="main-nav-link" href="/.">Home</a></td>
+                
+                    <td><a class="main-nav-link" href="/archives">Archives</a></td>
+                
+                    <td><a class="main-nav-link" href="/categories">Categories</a></td>
+                
+                    <td><a class="main-nav-link" href="/tags">Tags</a></td>
+                
+                    <td><a class="main-nav-link" href="/about">About</a></td>
+                
+                <td>
+                    
+    <div class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search" />
+    </div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+</header>
+
+        <div class="outer">
+            
+                
+
+<aside id="profile">
+    <div class="inner profile-inner">
+        <div class="base-info profile-block">
+            <img id="avatar" src="/css/images/avatar.png" />
+            <h2 id="name">PPOffice</h2>
+            <h3 id="title">Web Developer &amp; Designer</h3>
+            <span id="location"><i class="fa fa-map-marker"></i>Harbin, China</span>
+            <a id="follow" target="_blank" href="https://github.com/ppoffice/">FOLLOW</a>
+        </div>
+        <div class="article-info profile-block">
+            <div class="article-info-block">
+                47
+                <span>posts</span>
+            </div>
+            <div class="article-info-block">
+                74
+                <span>tags</span>
+            </div>
+        </div>
+        
+        <div class="profile-block social-links">
+            <table>
+                <tr>
+                    
+                    
+                    <td>
+                        <a href="http://github.com/ppoffice/hexo-theme-icarus" target="_blank" title="github" class=tooltip>
+                            <i class="fa fa-github"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/" target="_blank" title="twitter" class=tooltip>
+                            <i class="fa fa-twitter"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/" target="_blank" title="facebook" class=tooltip>
+                            <i class="fa fa-facebook"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/" target="_blank" title="dribbble" class=tooltip>
+                            <i class="fa fa-dribbble"></i>
+                        </a>
+                    </td>
+                    
+                    <td>
+                        <a href="/" target="_blank" title="rss" class=tooltip>
+                            <i class="fa fa-rss"></i>
+                        </a>
+                    </td>
+                    
+                </tr>
+            </table>
+        </div>
+        
+    </div>
+</aside>
+
+            
+            <section id="main"><article id="post-浣跨敤Mesos鍜孧arathon鎼缓Docker闆嗙兢" class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+            使用Mesos和Marathon搭建Docker集群
+        </h1>
+    
+
+                
+                    <div class="article-meta">
+                        
+    <div class="article-date">
+        <i class="fa fa-calendar"></i>
+        <a href="/2015/11/09/浣跨敤Mesos鍜孧arathon鎼缓Docker闆嗙兢/">
+            <time datetime="2015-11-09T09:27:14.000Z" itemprop="datePublished">2015-11-09</time>
+        </a>
+    </div>
+
+
+                        
+    <div class="article-category">
+    	<i class="fa fa-folder"></i>
+        <a class="article-category-link" href="/categories/基础架构/">基础架构</a>
+    </div>
+
+                        
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/docker/">docker</a>, <a class="tag-link" href="/tags/marathon/">marathon</a>, <a class="tag-link" href="/tags/mesos/">mesos</a>
+    </div>
+
+                    </div>
+                
+            </header>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+        
+            
+            <p>利用Mesos，Marathon对Docker集群进行管理，保证高容错性，高拓展性。</p>
+<a id="more"></a>
+<h2 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h2><h3 id="1-创建Master节点虚拟机"><a href="#1-创建Master节点虚拟机" class="headerlink" title="1.创建Master节点虚拟机"></a>1.创建Master节点虚拟机</h3><p>执行命令</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$: vagrant init</div></pre></td></tr></table></figure>
+<p>这时候会在当前文件夹下创建文件<code>Vagrantfile</code>，该文件是<code>ruby</code>语法的虚拟机配置文件，然后我们用vim修改该文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$: vim Vagrantfile</div></pre></td></tr></table></figure>
+<p>将内容修改如下：</p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># -*- mode: ruby -*-</span></div><div class="line"><span class="comment"># vi: set ft=ruby :</span></div><div class="line"></div><div class="line">Vagrant.configure(<span class="number">2</span>) <span class="keyword">do</span> <span class="params">|config|</span></div><div class="line">  config.vm.box = <span class="string">"bento/centos-7.1"</span></div><div class="line">  config.ssh.insert_key = <span class="literal">false</span></div><div class="line">  config.vm.define <span class="string">"node1"</span> <span class="keyword">do</span> <span class="params">|node1|</span></div><div class="line">      node1.vm.network <span class="string">"private_network"</span>, <span class="symbol">ip:</span> <span class="string">"192.168.33.10"</span></div><div class="line">      node1.vm.hostname = <span class="string">"node1"</span></div><div class="line">  <span class="keyword">end</span></div><div class="line"></div><div class="line">  config.vm.define <span class="string">"node2"</span> <span class="keyword">do</span> <span class="params">|node2|</span></div><div class="line">      node2.vm.network <span class="string">"private_network"</span>, <span class="symbol">ip:</span> <span class="string">"192.168.33.11"</span></div><div class="line">      node2.vm.hostname = <span class="string">"node2"</span></div><div class="line"> <span class="keyword">end</span></div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure>
+<p>该配置会生成两个使用系统centos-7.1的节点，分别分配IP为<code>192.168.33.10</code>和<code>192.168.33.11</code>，作为我们的<code>Master</code>和<code>Slave</code>。</p>
+<p>然后我们启动第一个节点<code>node1</code>:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">$: vagrant up node1</div><div class="line">Bringing machine &apos;node1&apos; up with &apos;virtualbox&apos; provider...</div><div class="line">==&gt; node1: Checking if box &apos;bento/centos-7.1&apos; is up to date...</div><div class="line">==&gt; node1: Clearing any previously set forwarded ports...</div><div class="line">==&gt; node1: Clearing any previously set network interfaces...</div><div class="line">==&gt; node1: Preparing network interfaces based on configuration...</div><div class="line">    node1: Adapter 1: nat</div><div class="line">    node1: Adapter 2: hostonly</div><div class="line">==&gt; node1: Forwarding ports...</div><div class="line">    node1: 22 =&gt; 2222 (adapter 1)</div><div class="line">==&gt; node1: Booting VM...</div><div class="line">==&gt; node1: Waiting for machine to boot. This may take a few minutes...</div><div class="line">    node1: SSH address: 127.0.0.1:2222</div><div class="line">    node1: SSH username: vagrant</div><div class="line">    node1: SSH auth method: private key</div><div class="line">    node1: Warning: Connection timeout. Retrying...</div><div class="line">    node1: Warning: Remote connection disconnect. Retrying...</div><div class="line">==&gt; node1: Machine booted and ready!</div><div class="line">==&gt; node1: Checking for guest additions in VM...</div><div class="line">==&gt; node1: Setting hostname...</div><div class="line">==&gt; node1: Configuring and enabling network interfaces...</div><div class="line">==&gt; node1: Mounting shared folders...</div><div class="line">    node1: /vagrant =&gt; /Users/jeff/workspace/mesos/cluster</div><div class="line">==&gt; node1: Machine already provisioned. Run `vagrant provision` or use the `--provision`</div><div class="line">==&gt; node1: flag to force provisioning. Provisioners marked to run always will still run.</div></pre></td></tr></table></figure>
+<p>这样第一个节点就成功启动了，然后我们通过<code>ssh</code>连接到<code>node1</code>进行操作</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">$:vagrant ssh node1</div><div class="line">[vagrant@node1 ~]$</div></pre></td></tr></table></figure>
+<p>这样就成功创建了第一个节点。</p>
+<h3 id="2-下载启动Mesos和Marathon"><a href="#2-下载启动Mesos和Marathon" class="headerlink" title="2.下载启动Mesos和Marathon"></a>2.下载启动Mesos和Marathon</h3><p>在下载<code>Mesos</code>和<code>Marathon</code>之前，需要先把<strong>hosts文件修改一下</strong>，把<code>127.0.0.1</code>对应的解析中的<code>node1</code>删除，并在最后加上<code>node1</code>和<code>node2</code>的IP，修改后的<code>hosts</code>可见cat后的输出</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">[vagrant@node1 ~]$ sudo vi /etc/hosts</div><div class="line">[vagrant@node1 ~]$ cat /etc/hosts</div><div class="line">127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4</div><div class="line">::1         localhost localhost.localdomain localhost6 localhost6.localdomain6</div><div class="line"></div><div class="line">192.168.33.10 node1</div><div class="line">192.168.33.11 node2</div></pre></td></tr></table></figure>
+<p>然后下载mesos的仓库，再安装mesos和marathon</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">[vagrant@node1 ~]$ sudo rpm -Uvh http://repos.mesosphere.com/el/7/noarch/RPMS/mesosphere-el-repo-7-1.noarch.rpm</div><div class="line">[vagrant@node1 ~]$ sudo yum install mesos marathon</div></pre></td></tr></table></figure>
+<h3 id="3-下载配置Zookeeper"><a href="#3-下载配置Zookeeper" class="headerlink" title="3.下载配置Zookeeper"></a>3.下载配置Zookeeper</h3><p>下载zookeeper仓库并安装Zookeeper</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">[vagrant@node1 ~]$ sudo rpm -Uvh http://archive.cloudera.com/cdh4/one-click-install/redhat/6/x86_64/cloudera-cdh-4-0.x86_64.rpm</div><div class="line">[vagrant@node1 ~]$ sudo yum -y install zookeeper zookeeper-server</div></pre></td></tr></table></figure>
+<p>初始化并启动Zookeeper</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">[vagrant@node1 ~]$ sudo -u zookeeper zookeeper-server-initialize --myid=1</div><div class="line">Using myid of 1</div><div class="line">[vagrant@node1 ~]$ sudo service zookeeper-server start</div><div class="line">JMX enabled by default</div><div class="line">Using config: /etc/zookeeper/conf/zoo.cfg</div><div class="line">Starting zookeeper ... STARTED</div></pre></td></tr></table></figure>
+<h3 id="4-下载安装Docker"><a href="#4-下载安装Docker" class="headerlink" title="4.下载安装Docker"></a>4.下载安装Docker</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">[vagrant@node1 ~]$ sudo yum install -y docker</div><div class="line">[vagrant@node1 ~]$ sudo chkconfig docker on</div><div class="line">[vagrant@node1 ~]$ sudo service docker start</div></pre></td></tr></table></figure>
+<p>然后告诉mesos，允许使用Docker作为Container</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">[vagrant@node1 ~]$ echo &apos;docker,mesos&apos; | sudo tee /etc/mesos-slave/containerizers</div><div class="line">[vagrant@node1 ~]$ sudo service mesos-slave restart</div></pre></td></tr></table></figure>
+<h3 id="5-启动Mesos和Marathon"><a href="#5-启动Mesos和Marathon" class="headerlink" title="5.启动Mesos和Marathon"></a>5.启动Mesos和Marathon</h3><p>启动Mesos</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">[vagrant@node1 ~]$ sudo service mesos-master start</div><div class="line">[vagrant@node1 ~]$ sudo service mesos-slave start</div></pre></td></tr></table></figure>
+<p>这时可以从外部访问已经启动的Mesos的GUI界面了，访问地址为<code>192.168.33.10:5050</code></p>
+<p><img src="/uploads/images/2015/11/09/1.png" alt="start-mesos"></p>
+<p>启动Marathon</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[vagrant@node1 ~]$ sudo service marathon start</div></pre></td></tr></table></figure>
+<p>同样可以从GUI访问Marathon了，访问地址为<code>192.168.33.10:8080</code></p>
+<p><img src="/uploads/images/2015/11/09/2.png" alt="start-marathon"></p>
+<p>至此，Master节点的配置就已经结束了</p>
+<h3 id="6-创建配置Slave节点"><a href="#6-创建配置Slave节点" class="headerlink" title="6.创建配置Slave节点"></a>6.创建配置Slave节点</h3><p>首先启动slave节点并用ssh登录</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">$: vagrant up node2</div><div class="line">$: vagrant ssh node2</div><div class="line">[vagrant@node2 ~]$</div></pre></td></tr></table></figure>
+<p>然后修改<code>/etc/hosts</code>并且下载Mesos，具体过程同<a href="#">步骤4</a>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">[vagrant@node2 ~]$ sudo vi /etc/hosts</div><div class="line">[vagrant@node2 ~]$ cat /etc/hosts</div><div class="line">127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4</div><div class="line">::1         localhost localhost.localdomain localhost6 localhost6.localdomain6</div><div class="line"></div><div class="line">192.168.33.10 node1</div><div class="line">192.168.33.11 node2</div><div class="line">[vagrant@node2 ~]$ sudo rpm -Uvh http://repos.mesosphere.com/el/7/noarch/RPMS/mesosphere-el-repo-7-1.noarch.rpm</div><div class="line">[vagrant@node2 ~]$ sudo yum install mesos</div></pre></td></tr></table></figure>
+<p>编辑node2的<code>/etc/mesos/zk</code>文件，使得它指向node1。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">[vagrant@node2 ~]$ sudo vi /etc/mesos/zk</div><div class="line">[vagrant@node2 ~]$ cat /etc/mesos/zk</div><div class="line">zk://192.168.33.10:2181/mesos</div></pre></td></tr></table></figure>
+<p>启动Mesos（作为slave），并且关闭<code>mesos-master</code>服务的自动启动</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">[vagrant@node2 ~]$  sudo service mesos-slave start</div><div class="line">[vagrant@node2 ~]$ sudo chkconfig mesos-slave on</div><div class="line">[vagrant@node2 ~]$  sudo chkconfig mesos-master off</div></pre></td></tr></table></figure>
+<p>安装Docker,并允许使用Docker作为容器</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">[vagrant@node2 ~]$ sudo yum install -y docker</div><div class="line">[vagrant@node2 ~]$ sudo chkconfig docker on</div><div class="line">[vagrant@node2 ~]$ sudo service docker start</div><div class="line">[vagrant@node2 ~]$ echo &apos;docker,mesos&apos; | sudo tee /etc/mesos-slave/containerizers</div><div class="line">[vagrant@node2 ~]$ sudo service mesos-slave restart</div></pre></td></tr></table></figure>
+<p>这样，slave节点的配置也结束了</p>
+<h3 id="6-测试"><a href="#6-测试" class="headerlink" title="6.测试"></a>6.测试</h3><p>我们打开Mesos的GUI界面，查看slave，可以看到现在已经有2个slave节点了，如下图。</p>
+<p><img src="/uploads/images/2015/11/09/3.png" alt="check-slaves"></p>
+<p>然后我们创建一个简单的webapp，使用<code>python -m SimpleHTTPServer</code></p>
+<p><img src="/uploads/images/2015/11/09/4.png" alt="create-webapp"></p>
+<p>然后将webapp应用scale到2个实例</p>
+<p><img src="/uploads/images/2015/11/09/5.png" alt="scale-instance"></p>
+<p>可以看到两个实例分别在两个不同的slave中运行了</p>
+<p><img src="/uploads/images/2015/11/09/6.png" alt="result"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">//Todo 后面会加上部署Docker的实例测试</div></pre></td></tr></table></figure>
+<h2 id="打包虚拟机"><a href="#打包虚拟机" class="headerlink" title="打包虚拟机"></a>打包虚拟机</h2><p>为了之后能够快速的部署，我们可以将<code>node1</code>和<code>node2</code>分别打包成<code>mesos-master</code>和<code>mesos-slave</code>，以便于增加节点。</p>
+<p>退出ssh，首先将node1打包为<code>mesos-master</code>，在宿主机上执行：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">$: vagrant package node1</div><div class="line">$: vagrant box add mesos-master package.box</div><div class="line">$: vagrant destroy node1</div></pre></td></tr></table></figure>
+<p>同样对node2我们也将其打包为<code>mesos-slave</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">$: vagrant package node2</div><div class="line">$: vagrant box add mesos-slave package.box</div><div class="line">$: vagrant destroy node2</div></pre></td></tr></table></figure>
+<p>然后修改<code>Vagrantfile</code>，将其修改为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"># -*- mode: ruby -*-</div><div class="line"># vi: set ft=ruby :</div><div class="line"></div><div class="line">Vagrant.configure(2) do |config|</div><div class="line">  config.vm.box = &quot;bento/centos-7.1&quot;</div><div class="line">  config.ssh.insert_key = false</div><div class="line">  config.vm.define &quot;node1&quot; do |node1|</div><div class="line">      node1.vm.network &quot;private_network&quot;, ip: &quot;192.168.33.10&quot;</div><div class="line">      node1.vm.hostname = &quot;node1&quot;</div><div class="line">      node1.vm.box = &quot;mesos-master&quot;</div><div class="line">  end</div><div class="line"></div><div class="line">  config.vm.define &quot;node2&quot; do |node2|</div><div class="line">      node2.vm.network &quot;private_network&quot;, ip: &quot;192.168.33.11&quot;</div><div class="line">      node2.vm.hostname = &quot;node2&quot;</div><div class="line"> end</div><div class="line">end</div></pre></td></tr></table></figure>
+<p>这样就完成了虚拟机的打包，然后分别运行：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">$: vagrant up node1</div><div class="line">$: vagrant up node2</div></pre></td></tr></table></figure>
+<p>就可以运行了，修改集群的slave数量，则可以直接修改<code>Vagrantfile</code>即可！</p>
+
+        
+        </div>
+        <footer class="article-footer">
+            <div class="share-container">
+
+
+
+</div>
+
+    <a data-url="http://mikasa.github.io/2015/11/09/浣跨敤Mesos鍜孧arathon鎼缓Docker闆嗙兢/" data-id="civxl8g2p003drgma98gl4tff" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        // Prevent duplicate binding
+        if (typeof(__SHARE_BUTTON_BINDED__) === 'undefined' || !__SHARE_BUTTON_BINDED__) {
+            __SHARE_BUTTON_BINDED__ = true;
+        } else {
+            return;
+        }
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="fa fa-twitter article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="fa fa-facebook article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="fa fa-pinterest article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="fa fa-google article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+            
+    
+        <a href="http://mikasa.github.io/2015/11/09/浣跨敤Mesos鍜孧arathon鎼缓Docker闆嗙兢/#comments" class="article-comment-link disqus-comment-count" data-disqus-url="http://mikasa.github.io/2015/11/09/浣跨敤Mesos鍜孧arathon鎼缓Docker闆嗙兢/">Comments</a>
+    
+
+        </footer>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/2015/11/16/鍒╃敤Docker鍜孧arathon鏋勫缓甯︽暟鎹垎鏋愮殑Web鏈嶅姟/" id="article-nav-newer" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Newer</strong>
+            <div class="article-nav-title">
+                
+                    利用Docker和Marathon构建带数据分析的Web应用
+                
+            </div>
+        </a>
+    
+    
+        <a href="/2015/11/07/Mesos-Framework瑙ｆ瀽/" id="article-nav-older" class="article-nav-link-wrap">
+            <strong class="article-nav-caption">Older</strong>
+            <div class="article-nav-title">Mesos Framework解析</div>
+        </a>
+    
+</nav>
+
+
+    
+</article>
+
+
+    
+    <section id="comments">
+    
+        
+    <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    </div>
+
+    
+    </section>
+
+</section>
+            
+                <aside id="sidebar">
+   
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">recent</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/11/25/hello-world/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2016/11/25/hello-world/" class="title">Hello World</a></p>
+                            <p class="item-date"><time datetime="2016-11-25T03:33:34.697Z" itemprop="datePublished">2016-11-25</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/09/13/浣跨敤-gh-md-doc-鐢熸垚-markdown-鏂囩珷缁撴瀯/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/设计开发/">设计开发</a></p>
+                            <p class="item-title"><a href="/2016/09/13/浣跨敤-gh-md-doc-鐢熸垚-markdown-鏂囩珷缁撴瀯/" class="title">使用 gh-md-doc 生成 markdown 文章结构</a></p>
+                            <p class="item-date"><time datetime="2016-09-13T12:23:11.000Z" itemprop="datePublished">2016-09-13</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/09/04/Moore-vote-algorithm-澶氭暟鎶曠エ绠楁硶/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/算法分析/">算法分析</a></p>
+                            <p class="item-title"><a href="/2016/09/04/Moore-vote-algorithm-澶氭暟鎶曠エ绠楁硶/" class="title">Moore vote algorithm 多数投票算法</a></p>
+                            <p class="item-date"><time datetime="2016-09-04T12:24:16.000Z" itemprop="datePublished">2016-09-04</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/09/01/Zabbix閰嶅悎lm-sensors鐩戞帶鏈嶅姟鍣–PU娓╁害/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/系统运维/">系统运维</a></p>
+                            <p class="item-title"><a href="/2016/09/01/Zabbix閰嶅悎lm-sensors鐩戞帶鏈嶅姟鍣–PU娓╁害/" class="title">Zabbix配合lm_sensors监控服务器CPU温度</a></p>
+                            <p class="item-date"><time datetime="2016-09-01T06:18:06.000Z" itemprop="datePublished">2016-09-01</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/05/30/Ubuntu-瀹夎涓庝娇鐢⊿lurm/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/基础架构/">基础架构</a></p>
+                            <p class="item-title"><a href="/2016/05/30/Ubuntu-瀹夎涓庝娇鐢⊿lurm/" class="title">使用slurm进行集群的资源管理（vagrant）</a></p>
+                            <p class="item-date"><time datetime="2016-05-30T01:42:48.000Z" itemprop="datePublished">2016-05-30</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">categories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/分布式计算/">分布式计算</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/基础架构/">基础架构</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/竞赛历程/">竞赛历程</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法分析/">算法分析</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法题解/">算法题解</a><span class="category-list-count">23</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/系统运维/">系统运维</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计开发/">设计开发</a><span class="category-list-count">3</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">November 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">September 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">July 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">March 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">February 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">January 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/11/">November 2014</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">October 2014</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/07/">July 2014</a><span class="archive-list-count">2</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">tags</h3>
+        <div class="widget">
+            <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/ACM现场赛/">ACM现场赛</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/BestCoder/">BestCoder</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/CodeForces/">CodeForces</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/HDFS/">HDFS</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hadoop/">Hadoop</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ICTCLAS/">ICTCLAS</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Mesos/">Mesos</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NLP/">NLP</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ambari/">ambari</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ambari-hadoop/">ambari,hadoop</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/authentication/">authentication</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/bugfix/">bugfix</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/chronos/">chronos</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/cpu/">cpu</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/dfs/">dfs</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/dp/">dp</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/fibonacci/">fibonacci</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/gh-md-doc/">gh-md-doc</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/hadoop/">hadoop</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/hdu/">hdu</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/lm-sensors/">lm_sensors</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/lucas定理/">lucas定理</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/map/">map</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/marathon/">marathon</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/markdown/">markdown</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mesos/">mesos</a><span class="tag-list-count">7</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/moore-vote-algorithm/">moore vote algorithm</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/stl/">stl</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/webui/">webui</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/zabbix/">zabbix</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/中国剩余定理/">中国剩余定理</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/中文分词/">中文分词</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/二分/">二分</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/二分答案/">二分答案</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/云计算/">云计算</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/优先队列/">优先队列</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/几何/">几何</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/后缀数组/">后缀数组</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/图论/">图论</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/基础算法/">基础算法</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/多校联训/">多校联训</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/容斥原理/">容斥原理</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并查集/">并查集</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/循环节/">循环节</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/批处理/">批处理</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/排序/">排序</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/搜索/">搜索</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数塔/">数塔</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数论/">数论</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/文本挖掘/">文本挖掘</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/斐波那契/">斐波那契</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/暴力/">暴力</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/最小公倍数/">最小公倍数</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/期望/">期望</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/标记法/">标记法</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/森林/">森林</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/概率dp/">概率dp</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/模拟/">模拟</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/水题/">水题</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/百度之星/">百度之星</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/监控/">监控</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/矩阵快速幂/">矩阵快速幂</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/离线查询/">离线查询</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/系统运维/">系统运维</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/素数/">素数</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/群论/">群论</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/脚本/">脚本</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/记忆化搜索/">记忆化搜索</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/贪心/">贪心</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/资源管理/">资源管理</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/遗传算法/">遗传算法</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/队列/">队列</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/集群/">集群</a><span class="tag-list-count">1</span></li></ul>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap">
+        <h3 class="widget-title">tag cloud</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/ACM现场赛/" style="font-size: 10px;">ACM现场赛</a> <a href="/tags/BestCoder/" style="font-size: 10px;">BestCoder</a> <a href="/tags/CodeForces/" style="font-size: 15px;">CodeForces</a> <a href="/tags/HDFS/" style="font-size: 10px;">HDFS</a> <a href="/tags/Hadoop/" style="font-size: 10px;">Hadoop</a> <a href="/tags/ICTCLAS/" style="font-size: 10px;">ICTCLAS</a> <a href="/tags/Mesos/" style="font-size: 10px;">Mesos</a> <a href="/tags/NLP/" style="font-size: 10px;">NLP</a> <a href="/tags/ambari/" style="font-size: 10px;">ambari</a> <a href="/tags/ambari-hadoop/" style="font-size: 10px;">ambari,hadoop</a> <a href="/tags/authentication/" style="font-size: 10px;">authentication</a> <a href="/tags/bugfix/" style="font-size: 10px;">bugfix</a> <a href="/tags/chronos/" style="font-size: 10px;">chronos</a> <a href="/tags/cpu/" style="font-size: 10px;">cpu</a> <a href="/tags/dfs/" style="font-size: 15px;">dfs</a> <a href="/tags/docker/" style="font-size: 12.5px;">docker</a> <a href="/tags/dp/" style="font-size: 12.5px;">dp</a> <a href="/tags/fibonacci/" style="font-size: 10px;">fibonacci</a> <a href="/tags/gh-md-doc/" style="font-size: 10px;">gh-md-doc</a> <a href="/tags/hadoop/" style="font-size: 10px;">hadoop</a> <a href="/tags/hdu/" style="font-size: 12.5px;">hdu</a> <a href="/tags/lm-sensors/" style="font-size: 10px;">lm_sensors</a> <a href="/tags/lucas定理/" style="font-size: 10px;">lucas定理</a> <a href="/tags/map/" style="font-size: 10px;">map</a> <a href="/tags/marathon/" style="font-size: 12.5px;">marathon</a> <a href="/tags/markdown/" style="font-size: 10px;">markdown</a> <a href="/tags/mesos/" style="font-size: 20px;">mesos</a> <a href="/tags/moore-vote-algorithm/" style="font-size: 10px;">moore vote algorithm</a> <a href="/tags/stl/" style="font-size: 10px;">stl</a> <a href="/tags/webui/" style="font-size: 10px;">webui</a> <a href="/tags/zabbix/" style="font-size: 10px;">zabbix</a> <a href="/tags/中国剩余定理/" style="font-size: 10px;">中国剩余定理</a> <a href="/tags/中文分词/" style="font-size: 10px;">中文分词</a> <a href="/tags/二分/" style="font-size: 10px;">二分</a> <a href="/tags/二分答案/" style="font-size: 10px;">二分答案</a> <a href="/tags/云计算/" style="font-size: 10px;">云计算</a> <a href="/tags/优先队列/" style="font-size: 10px;">优先队列</a> <a href="/tags/几何/" style="font-size: 10px;">几何</a> <a href="/tags/后缀数组/" style="font-size: 10px;">后缀数组</a> <a href="/tags/图论/" style="font-size: 10px;">图论</a> <a href="/tags/基础算法/" style="font-size: 10px;">基础算法</a> <a href="/tags/多校联训/" style="font-size: 10px;">多校联训</a> <a href="/tags/容斥原理/" style="font-size: 10px;">容斥原理</a> <a href="/tags/并查集/" style="font-size: 12.5px;">并查集</a> <a href="/tags/循环节/" style="font-size: 10px;">循环节</a> <a href="/tags/批处理/" style="font-size: 10px;">批处理</a> <a href="/tags/排序/" style="font-size: 10px;">排序</a> <a href="/tags/搜索/" style="font-size: 10px;">搜索</a> <a href="/tags/数塔/" style="font-size: 10px;">数塔</a> <a href="/tags/数论/" style="font-size: 17.5px;">数论</a> <a href="/tags/文本挖掘/" style="font-size: 10px;">文本挖掘</a> <a href="/tags/斐波那契/" style="font-size: 10px;">斐波那契</a> <a href="/tags/暴力/" style="font-size: 10px;">暴力</a> <a href="/tags/最小公倍数/" style="font-size: 12.5px;">最小公倍数</a> <a href="/tags/期望/" style="font-size: 10px;">期望</a> <a href="/tags/标记法/" style="font-size: 10px;">标记法</a> <a href="/tags/森林/" style="font-size: 10px;">森林</a> <a href="/tags/概率dp/" style="font-size: 12.5px;">概率dp</a> <a href="/tags/模拟/" style="font-size: 10px;">模拟</a> <a href="/tags/水题/" style="font-size: 12.5px;">水题</a> <a href="/tags/百度之星/" style="font-size: 10px;">百度之星</a> <a href="/tags/监控/" style="font-size: 10px;">监控</a> <a href="/tags/矩阵快速幂/" style="font-size: 10px;">矩阵快速幂</a> <a href="/tags/离线查询/" style="font-size: 10px;">离线查询</a> <a href="/tags/系统运维/" style="font-size: 10px;">系统运维</a> <a href="/tags/素数/" style="font-size: 10px;">素数</a> <a href="/tags/群论/" style="font-size: 10px;">群论</a> <a href="/tags/脚本/" style="font-size: 10px;">脚本</a> <a href="/tags/记忆化搜索/" style="font-size: 10px;">记忆化搜索</a> <a href="/tags/贪心/" style="font-size: 10px;">贪心</a> <a href="/tags/资源管理/" style="font-size: 10px;">资源管理</a> <a href="/tags/遗传算法/" style="font-size: 10px;">遗传算法</a> <a href="/tags/队列/" style="font-size: 12.5px;">队列</a> <a href="/tags/集群/" style="font-size: 10px;">集群</a>
+        </div>
+    </div>
+
+    
+        
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">links</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://hexo.io">Hexo</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+    
+    <div id="toTop" class="fa fa-angle-up"></div>
+</aside>
+            
+        </div>
+        <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2016 John Doe<br>
+            Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>. Theme by <a href="http://github.com/ppoffice">PPOffice</a>
+        </div>
+    </div>
+</footer>
+        
+    
+    <script>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://mikasa.github.io/2015/11/09/浣跨敤Mesos鍜孧arathon鎼缓Docker闆嗙兢/';
+        
+        this.page.identifier = '浣跨敤Mesos鍜孧arathon鎼缓Docker闆嗙兢';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'hexo-theme-icarus' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+        <script src="/libs/justified-gallery/jquery.justifiedGallery.min.js"></script>
+    
+
+
+
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>
